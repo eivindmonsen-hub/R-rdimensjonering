@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 from copy import copy
+from copy import deepcopy
 import os
 from pathlib import PurePosixPath
 import re
@@ -115,6 +116,8 @@ def styled_cell(ws, address, value=None, kind="calc", number_format=None, note=N
         cell.number_format = number_format
     if note:
         cell.comment = Comment(note, "R-rdimensjonering")
+        cell.comment.width = 400
+        cell.comment.height = 180
     return cell
 
 
@@ -495,9 +498,12 @@ def guide(wb):
         ("4. Bend / Y / T","Legg hver bendtype/vinkel på egen rad. R/Di er faktisk senterlinjeradius delt på innvendig diameter, ikke R/DN. Rundede bend bruker Rennels ved Re>=4000; eget K overstyrer. Y/T og annen geometri krever eget dokumentert K, fordi fordeling og strømningsvei påvirker motstanden. Maksimalt 25 rader."),
         ("Flensede rørkoblinger","I hovedfanen angis antall flensepar med pakning og K per kobling. K=0 forutsetter ideell full lysåpning uten innsnevring eller utstikkende pakning; flensen i seg selv gir da ikke et separat lokalt tap. Bruk dokumentert K ved avvik, eller registrer dokumentert trykkfall i Komponenter uten dobbelttelling. Flensens EN-standard/trykklasse, f.eks. EN 1092-1, inngår ikke i den hydrauliske beregningen."),
         ("5. Ventiler og komponenter","Velg antall og trykkfall per enhet i kPa i hver tabell. Trykkfall multipliseres med antall. Verdien skal gjelde den valgte volumstrømmen og åpningen/driftsbetingelsen. Den endres ikke automatisk med volumstrøm. Registrer ikke samme komponent også som K. Maksimalt 25 rader per tabell."),
-        ("6. Resultater","Nødvendig trykkdifferanse = rørfriksjon + bendtap + ventiltap + øvrige tap + ρgΔz. Negativ verdi beholdes. Valgfritt innløpstrykk gir beregnet utløpstrykk. Beregningen forutsetter lik hastighet ved endene. Kontrollfeltet må vise OK; ved ugyldige aktive rader blir totalresultatet tomt."),
-        ("7. Modellgrenser","Stasjonær, enfaset, Newtonsk og inkompressibel væske; én konstant diameter og volumstrøm; fullt utviklet rørstrømning. Re<2300 bruker 64/Re, Re>=4000 Colebrook. 2300<=Re<4000 blokkeres som overgangsområde. Rundede bends automatiske modell blokkeres ved 0<Re<4000; dokumentert eget K kan brukes. Ingen kavitasjons-, transient-, pumpekurve- eller nettverksberegning."),
-        ("8. Normer og datakvalitet","EN/ISO-valgene er normreferanser og et begrenset dimensjonsutvalg, ikke samsvarsgodkjenning. Ruhet er et startanslag, ikke en materialgaranti. Arbeidsboken beregner hydraulisk trykktap; den beregner ikke tillatt arbeidstrykk eller veggtykkelse iht. EN 13480. Verifiser faktisk geometri og produktdata."),
+        ("6. Resultater","Nødvendig trykkdifferanse = alle irreversible tap + ρgΔz + ρ(vut²−vinn²)/2. Negativ verdi beholdes. Valgfritt innløpstrykk gir utløpstrykk. Diametre ved endene styres av reduksjonskjeden. Kontrollfeltet må vise OK; ved ugyldige aktive rader blir totalresultatet tomt. Grafetiketter bruker utsiden av stolpeenden og følger positiv/negativ retning."),
+        ("7. Modellgrenser","Stasjonær, enfaset, Newtonsk og inkompressibel væske; seriell strømningsvei med samme volumstrøm; fullt utviklet rørstrømning. Re<2300 bruker 64/Re, Re>=4000 Colebrook. Overgangsområdet blokkeres. Lokale diametre i Bend kan oppgis etter reduksjoner. Ved lave lokale Re kreves eget K. Ingen kavitasjons-, transient-, pumpekurve- eller nettverksberegning."),
+        ("8. Normer og datakvalitet","EN/ISO-valgene er normreferanser og et begrenset dimensjonsutvalg, ikke samsvarsgodkjenning. Ruhet er et startanslag, ikke en materialgaranti. Rørstyrke er en separat idealisert trykkontroll med dokumentert flytegrense; den er ikke full prosjektering/verifikasjon iht. EN 13480. Verifiser faktisk geometri og produktdata."),
+        ("Rørstyrke og sikkerhetsfaktor","Dimensjonerende overtrykk må oppgis separat, ikke hentes fra hydraulisk Δp. Effektivt gods = nominelt gods × (1 − negativ toleranse/100) − korrosjonstillegg. Oppgi og bekreft flytegrense ved riktig temperatur og kilde. Lamé med lukkede ender og von Mises gir trykkspenning; tillatt spenning = ηRe/n. Utnyttelse <=1 gjelder bare denne idealiserte trykkmodellen. Sikkerhetsmargin mot flyt er ikke en brudd- eller trykkprøveberegning."),
+        ("Reduksjoner og rørstrekk","Oppgi reduksjoner/ekspansjoner i rekkefølge, én per aktiv rad, med faktisk ID før/etter og aksial lengde. K refererer til liten diameter. Lokalt tap = Kρvliten²/2; hastighetsbidrag beregnes én gang ved endene. Crane: reduksjon K=0,8 sin(θ/2)(1−β²) ved θ<45°, ellers 0,5√sin(θ/2)(1−β²). Ekspansjon K=2,6 sin(θ/2)(1−β²)² ved θ<45°, ellers (1−β²)². β=Dliten/Dstor; θ full konusvinkel. Eget K overstyrer. Kilder: Crane TP410 og fluids.fittings."),
+        ("Ventilkatalog og Kv","Velg modell fra Ventilkatalog. Katalogen viser faktisk importstatus og kilde-URL, og inneholder ingen oppdiktede leverandørmodeller. Δp per ventil kan oppgis direkte. Alternativt brukes dokumentert Kv ved angitt DN og åpning: Δp[kPa]=100(ρ/1000)(Q/Kv)². Kv-metoden må bekreftes for væske/viskositet og åpning; ingen automatisk korreksjon for laminar strømning, kavitasjon eller choking."),
         ("Darcy–Weisbach / Colebrook","Δp_rør = f(L/D)ρv²/2; Re=ρvD/μ; v=4Q/(πD²). Turbulent: 1/√f = −2 log10(ε/(3,7D)+2,51/(Re√f)). Seks iterasjoner fra Haaland. Laminært: f=64/Re. g=9,80665 m/s². Colebrook, C. F. (1939), Turbulent Flow in Pipes, with Particular Reference to the Transition Region between the Smooth and Rough Pipe Laws."),
         ("Rennels, rundet bend","α i radianer, r=R/Di: K=fαr+(0,10+2,4f)sin(α/2)+6,6f[√sin(α/2)+sin(α/2)]/r^(4α/π). Modellen inkluderer friksjon i den buede rørlengden. Rennels & Hudson, Pipe Flow: A Practical and Comprehensive Guide, Wiley (2012). Koden er kontrollert mot den offentlig dokumenterte implementasjonen i fluids.fittings.bend_rounded."),
         ("Referanser / etterprøving","Normreferanser: EN 10220, ISO 4200, ISO 1127; relevante deler av EN 10216 og EN 10217; EN 10088-1 for rustfrie materialbetegnelser. Vann: avrundede standard tabellverdier (IAPWS); ISO VG 32: nominell viskositetsklasse iht. ISO 3448. Oppslagsarkene viser alle verdier brukt; testskriptet kontrollerer også uavhengig Colebrook-løsning og laminær Poiseuille."),
@@ -507,11 +513,11 @@ def guide(wb):
         styled_cell(ws,f"B{row}",topic)
         styled_cell(ws,f"C{row}",text)
         ws.row_dimensions[row].height=90 if row in (12,14,15,16) else 78
-    row=19
+    row=len(topics)+8
     cell=styled_cell(ws,f"C{row}","Dokumentert referanseimplementasjon: fluids / fittings.py")
     cell.hyperlink="https://github.com/CalebBell/fluids/blob/master/fluids/fittings.py"
     cell.font=Font(color="086AA5",underline="single")
-    ws.print_area="A1:C19"
+    ws.print_area=f"A1:C{row}"
     ws.page_setup.fitToHeight=0
     ws.print_title_rows="1:3"
 
@@ -531,7 +537,12 @@ def make_workbook():
     fixed_components(wb,"Komponenter","ANDRE KOMPONENTER – TRYKKFALL",["Filter","Varmeveksler","Mengdemåler","Sil","Annen komponent"])
     calculation(wb)
     guide(wb)
-    order=["Trykkberegning","Bend","Ventiler","Komponenter","Veiledning","Rørdata","Materialer","Medier","Beregning","_Lister"]
+    if __package__:
+        from .pressure_extensions import add_extensions
+    else:
+        from pressure_extensions import add_extensions
+    add_extensions(wb)
+    order=["Trykkberegning","Rørstyrke","Reduksjoner","Rørstrekk","Bend","Ventiler","Komponenter","Ventilkatalog","Veiledning","Rørdata","Materialer","Medier","Beregning","_Lister"]
     for i,name in enumerate(order):wb.move_sheet(wb[name],offset=i-wb.index(wb[name]))
     wb.active=0
     for sheet in wb:
@@ -542,9 +553,9 @@ def make_workbook():
 def restore_validations(source, target):
     """Preserve Excel validation expressions without rewriting cached formulas.
 
-    Calc drops some INDIRECT-based validation lists on XLSX export. Restore only
-    the validation XML from our generated source; all calculated cell XML stays
-    byte-for-byte intact outside that block.
+    Calc drops some INDIRECT-based validation lists and changes chart-label
+    layout on XLSX export. Restore those UI settings from our generated source;
+    calculated cell values and chart data caches are retained.
     """
     main_ns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
     rel_ns="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
@@ -563,10 +574,26 @@ def restore_validations(source, target):
         originals,outputs=sheet_paths(original),sheet_paths(calculated)
         for name,path in originals.items():
             tree=ET.fromstring(original.read(path))
+            # Calc can emit duplicate VML note shape IDs. Keep our original
+            # unique, hidden note shapes instead of spurious clipboard icons.
+            def legacy_path(package,sheet_path,sheet_tree):
+                legacy=sheet_tree.find(f"{{{main_ns}}}legacyDrawing")
+                if legacy is None:return None
+                relationships=str(PurePosixPath(sheet_path).parent/"_rels"/(PurePosixPath(sheet_path).name+".rels"))
+                refs=ET.fromstring(package.read(relationships))
+                target=next(r.attrib["Target"] for r in refs if r.attrib["Id"]==legacy.attrib[f"{{{rel_ns}}}id"])
+                if target.startswith("/"):return target.lstrip("/")
+                import posixpath
+                return posixpath.normpath(str(PurePosixPath(sheet_path).parent/target))
+            source_legacy=legacy_path(original,path,tree)
+            output_path=outputs[name]
+            if source_legacy:
+                output_tree=ET.fromstring(calculated.read(output_path))
+                output_legacy=legacy_path(calculated,output_path,output_tree)
+                if output_legacy:changes[output_legacy]=original.read(source_legacy)
             validation=tree.find(f"{{{main_ns}}}dataValidations")
             if validation is None:continue
             block=ET.tostring(validation,encoding="utf-8")
-            output_path=outputs[name]
             content=calculated.read(output_path)
             pattern=rb"<dataValidations\b[^>]*>.*?</dataValidations>"
             content,count=re.subn(pattern,lambda _:block,content,flags=re.DOTALL)
@@ -577,6 +604,40 @@ def restore_validations(source, target):
                 content=content[:position]+block+content[position:]
             elif count!=1:raise RuntimeError("Uventet antall dataValidations-blokker")
             changes[output_path]=content
+        chart_ns="http://schemas.openxmlformats.org/drawingml/2006/chart"
+        ns={"c":chart_ns}
+        original_charts=sorted(n for n in original.namelist() if re.fullmatch(r"xl/charts/chart\d+\.xml",n))
+        output_charts=sorted(n for n in calculated.namelist() if re.fullmatch(r"xl/charts/chart\d+\.xml",n))
+        if len(original_charts)!=len(output_charts):raise RuntimeError("Antall diagrammer endret under beregning")
+        ET.register_namespace("c",chart_ns)
+        ET.register_namespace("a","http://schemas.openxmlformats.org/drawingml/2006/main")
+        ET.register_namespace("r",rel_ns)
+        for before,after in zip(original_charts,output_charts):
+            source_chart=ET.fromstring(original.read(before))
+            target_chart=ET.fromstring(calculated.read(after))
+            labels=source_chart.find(".//c:barChart/c:dLbls",ns)
+            if labels is not None:
+                for series in target_chart.findall(".//c:barChart/c:ser",ns):
+                    existing=series.find("c:dLbls",ns)
+                    if existing is not None:
+                        position=list(series).index(existing)
+                        series.remove(existing)
+                    else:
+                        category=series.find("c:cat",ns)
+                        position=list(series).index(category)
+                    series.insert(position,deepcopy(labels))
+            for source_axis,target_axis in zip(source_chart.findall(".//c:catAx",ns),target_chart.findall(".//c:catAx",ns)):
+                for name in ("delete","tickLblPos"):
+                    src=source_axis.find(f"c:{name}",ns)
+                    dst=target_axis.find(f"c:{name}",ns)
+                    if src is not None and dst is not None:dst.attrib.update(src.attrib)
+            layout=source_chart.find(".//c:plotArea/c:layout",ns)
+            plot=target_chart.find(".//c:plotArea",ns)
+            if layout is not None:
+                old=plot.find("c:layout",ns)
+                if old is not None:plot.remove(old)
+                plot.insert(0,deepcopy(layout))
+            changes[after]=ET.tostring(target_chart,encoding="utf-8",xml_declaration=True)
         with tempfile.NamedTemporaryFile(dir=target.parent,suffix=".xlsx",delete=False) as temporary:
             temporary_path=Path(temporary.name)
         try:
