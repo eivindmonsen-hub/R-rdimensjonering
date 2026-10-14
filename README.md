@@ -1,7 +1,42 @@
 # R-rdimensjonering
 
-Arbeidsmiljø for å lage, lese og bearbeide Excel-filer (`.xlsx`) med Python.
-Repositoriet inneholder foreløpig oppsett og en funksjonskontroll, ikke en ferdig dimensjoneringsmodell.
+Excel-ark for hydraulisk trykkberegning av industrirør med væsker.
+
+Åpne **[workbooks/Trykkberegning_ror.xlsx](workbooks/Trykkberegning_ror.xlsx)** i Excel
+eller LibreOffice Calc. Arbeidsboken er makrofri og leveres med beregnede
+eksempelverdier. Endre de blå feltene; les kontrollfeltet og fanen **Veiledning**.
+Excel anbefales for valglister: LibreOffice kan fjerne dimensjonens avhengige
+valgliste ved lagring. Generatoren gjenoppretter denne listen etter beregning.
+
+Arket inneholder:
+
+- Rørvalg fra et vanlig DN/OD-utvalg for EN 10220 / ISO 4200 og ISO 1127, eller
+  metrisk OD. Faktisk veggtykkelse og egen innvendig diameter kan oppgis.
+- Karbonstål, rustfritt og duplex med valg av EN-produktstandard og egen ruhet.
+- Vann ved flere temperaturer, en nominell oljeviskositet og egne verdier for
+  tetthet og dynamisk viskositet. Volumstrøm angis i m³/h.
+- Rette rørmeter, høydemeter opp/ned og valgfritt innløpstrykk.
+- 25 rader for bend med ulike vinkler/radier, Y/T-stykker og egne K-verdier.
+- Antall flensede rørkoblinger med K per kobling; full lysåpning har K=0 som
+  idealisert startverdi.
+- 25 ventilrader og 25 øvrige komponentrader med antall og trykkfall per enhet.
+- Samlet trykkdifferanse i bar, trykkhøyde, hastighet, Reynolds-tall og en
+  grafisk oversikt over trykkbidragene.
+
+Y/T-stykker krever dokumentert K for den valgte strømningsveien. Ventil- og
+komponenttrykkfall må gjelde den aktuelle volumstrømmen og oppdateres hvis denne
+endres. Én komponent skal telles én gang.
+
+Modellen bruker Darcy–Weisbach og Colebrook for turbulent rørfriksjon, 64/Re for
+laminær strømning og Rennels for rundede bend. Overgangsområdet Re=2300–4000
+blokkeres. Ved lave Reynolds-tall kreves egne dokumenterte K-verdier for bend.
+Høydebidraget har fortegn; netto fall kan gi negativ nødvendig trykkdifferanse.
+
+Beregningsområdet er én rørstrekning med konstant diameter og volumstrøm, med
+Newtonsk, inkompressibel væske og lik hastighet ved endene. Arket beregner
+hydraulisk trykktap, ikke tillatt arbeidstrykk, godstykkelse eller et helt
+rørnettverk. Referansetabellene er begrensede utvalg/startanslag og må kontrolleres
+mot faktisk rør og leverandørdata. Detaljer og kilder står i arbeidsboken.
 
 ## Verktøy
 
@@ -61,5 +96,24 @@ Beregn alltid en kopi i en separat utdatakatalog, og kontroller resultatene før
 originalen eventuelt erstattes. LibreOffice kan endre formatering og funksjoner som
 er spesifikke for Excel.
 
-Neste prosjektsteg er å legge til arbeidsboken og beskrive inndata, formler,
-enheter og forventede kontrollresultater for selve dimensjoneringen.
+## Regenerering og beregningskontroller
+
+Fra roten av repositoriet, med Python-miljøet over:
+
+```bash
+python scripts/build_pressure_workbook.py --output /tmp/ny_trykkberegning.xlsx
+python tests/test_pressure_workbook.py
+```
+
+Bruk `.venv/bin/python` lokalt eller
+`/workspace/.cloud-onboarding/excel/venv/bin/python` i skymiljøet som `python` i
+kommandoene over. LibreOffice beregner lagrede formelresultater ved generering.
+Generatoren nekter å overskrive en eksisterende fil uten `--overwrite`. Denne
+opsjonen skal bare brukes til regenerering av malen, ikke på utfylte brukerfiler.
+
+Regresjonskontrollen kjører 16 gyldige beregningstilfeller og 22 tilfeller med
+ugyldige/manglende inndata gjennom LibreOffice. Turbulente resultater sammenlignes
+med en uavhengig Colebrook-løsning med biseksjon, laminære med Poiseuille, og
+bendmodellen med et publisert Rennels-eksempel. I tillegg kontrolleres fortegn,
+antall, enheter, flenser, valglister, formler og at leveringsfilen har komplette
+beregnede resultater uten Excel-feilkoder.
