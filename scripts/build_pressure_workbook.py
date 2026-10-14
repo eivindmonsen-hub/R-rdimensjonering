@@ -503,7 +503,7 @@ def guide(wb):
         ("8. Normer og datakvalitet","EN/ISO-valgene er normreferanser og et begrenset dimensjonsutvalg, ikke samsvarsgodkjenning. Ruhet er et startanslag, ikke en materialgaranti. Rørstyrke er en separat idealisert trykkontroll med dokumentert flytegrense; den er ikke full prosjektering/verifikasjon iht. EN 13480. Verifiser faktisk geometri og produktdata."),
         ("Rørstyrke og sikkerhetsfaktor","Dimensjonerende overtrykk må oppgis separat, ikke hentes fra hydraulisk Δp. Effektivt gods = nominelt gods × (1 − negativ toleranse/100) − korrosjonstillegg. Oppgi og bekreft flytegrense ved riktig temperatur og kilde. Lamé med lukkede ender og von Mises gir trykkspenning; tillatt spenning = ηRe/n. Utnyttelse <=1 gjelder bare denne idealiserte trykkmodellen. Sikkerhetsmargin mot flyt er ikke en brudd- eller trykkprøveberegning."),
         ("Reduksjoner og rørstrekk","Oppgi reduksjoner/ekspansjoner i rekkefølge, én per aktiv rad, med faktisk ID før/etter og aksial lengde. K refererer til liten diameter. Lokalt tap = Kρvliten²/2; hastighetsbidrag beregnes én gang ved endene. Crane: reduksjon K=0,8 sin(θ/2)(1−β²) ved θ<45°, ellers 0,5√sin(θ/2)(1−β²). Ekspansjon K=2,6 sin(θ/2)(1−β²)² ved θ<45°, ellers (1−β²)². β=Dliten/Dstor; θ full konusvinkel. Eget K overstyrer. Kilder: Crane TP410 og fluids.fittings."),
-        ("Ventilkatalog og Kv","Velg modell fra Ventilkatalog. Katalogen viser faktisk importstatus og kilde-URL, og inneholder ingen oppdiktede leverandørmodeller. Δp per ventil kan oppgis direkte. Alternativt brukes dokumentert Kv ved angitt DN og åpning: Δp[kPa]=100(ρ/1000)(Q/Kv)². Kv-metoden må bekreftes for væske/viskositet og åpning; ingen automatisk korreksjon for laminar strømning, kavitasjon eller choking."),
+        ("Ventilkatalog, K og Kv","Velg en generell kuleventil, skyvespjeld eller sentrisk dreiespjeld for automatisk trykktap ved 100 % åpning og Re>=4000. DN følger hovedfanen og faktisk ID brukes; etter reduksjon velges DN og lokal ID på raden. Ventildata viser K, ekvivalent Kv og referanser. Crane-estimater er ikke et verifisert leverandørsnitt; skyvespjeld bruker uttrykkelig et sluseanslag. Prioritet: eget Δp, dokumentert Kv, eget K, generell modell. Δp[kPa]=Kρv²/2000 eller 100(ρ/1000)(Q/Kv)². Eget K trenger kilde; eget Kv må bekreftes ved aktuell DN, åpning og væske. Ingen automatisk viskositets-, kavitasjons- eller chokingkorreksjon."),
         ("Darcy–Weisbach / Colebrook","Δp_rør = f(L/D)ρv²/2; Re=ρvD/μ; v=4Q/(πD²). Turbulent: 1/√f = −2 log10(ε/(3,7D)+2,51/(Re√f)). Seks iterasjoner fra Haaland. Laminært: f=64/Re. g=9,80665 m/s². Colebrook, C. F. (1939), Turbulent Flow in Pipes, with Particular Reference to the Transition Region between the Smooth and Rough Pipe Laws."),
         ("Rennels, rundet bend","α i radianer, r=R/Di: K=fαr+(0,10+2,4f)sin(α/2)+6,6f[√sin(α/2)+sin(α/2)]/r^(4α/π). Modellen inkluderer friksjon i den buede rørlengden. Rennels & Hudson, Pipe Flow: A Practical and Comprehensive Guide, Wiley (2012). Koden er kontrollert mot den offentlig dokumenterte implementasjonen i fluids.fittings.bend_rounded."),
         ("Referanser / etterprøving","Normreferanser: EN 10220, ISO 4200, ISO 1127; relevante deler av EN 10216 og EN 10217; EN 10088-1 for rustfrie materialbetegnelser. Vann: avrundede standard tabellverdier (IAPWS); ISO VG 32: nominell viskositetsklasse iht. ISO 3448. Oppslagsarkene viser alle verdier brukt; testskriptet kontrollerer også uavhengig Colebrook-løsning og laminær Poiseuille."),
@@ -513,6 +513,7 @@ def guide(wb):
         styled_cell(ws,f"B{row}",topic)
         styled_cell(ws,f"C{row}",text)
         ws.row_dimensions[row].height=90 if row in (12,14,15,16) else 78
+        if topic=="Ventilkatalog, K og Kv":ws.row_dimensions[row].height=130
     row=len(topics)+8
     cell=styled_cell(ws,f"C{row}","Dokumentert referanseimplementasjon: fluids / fittings.py")
     cell.hyperlink="https://github.com/CalebBell/fluids/blob/master/fluids/fittings.py"
@@ -542,7 +543,7 @@ def make_workbook():
     else:
         from pressure_extensions import add_extensions
     add_extensions(wb)
-    order=["Trykkberegning","Rørstyrke","Reduksjoner","Rørstrekk","Bend","Ventiler","Komponenter","Ventilkatalog","Veiledning","Rørdata","Materialer","Medier","Beregning","_Lister"]
+    order=["Trykkberegning","Rørstyrke","Reduksjoner","Rørstrekk","Bend","Ventiler","Ventildata","Komponenter","Ventilkatalog","Veiledning","Rørdata","Materialer","Medier","Beregning","_Lister"]
     for i,name in enumerate(order):wb.move_sheet(wb[name],offset=i-wb.index(wb[name]))
     wb.active=0
     for sheet in wb:

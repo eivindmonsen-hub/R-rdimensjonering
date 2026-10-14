@@ -1,0 +1,39 @@
+{
+  "retrieved": "2026-10-14",
+  "verified_supplier_datasets": 0,
+  "basis": "Crane TP-410, 2009, gjengitt i fluids. Modellestimater, ikke snitt av leverandørmålinger.",
+  "sources": [
+    "https://raw.githubusercontent.com/CalebBell/fluids/master/fluids/fittings.py",
+    "https://raw.githubusercontent.com/CalebBell/fluids/master/fluids/friction.py"
+  ],
+  "source_sha256": {
+    "fittings.py": "4e2077df2dd29e01eb94a492ebefaa232c793f009440c24aa0ada5ba25cc771c",
+    "friction.py": "1e13b9bb870db2c26eece135afa43feb8800a7baf431ab82b1e34d9e2b287f80"
+  },
+  "models": [
+    {
+      "name": "Generell kuleventil – full åpning",
+      "category": "Kuleventil",
+      "minimum_dn": 15,
+      "multiplier_small": 3,
+      "multiplier_large": 3,
+      "basis": "Crane: K=3 fT, full lysåpning og helt åpen kule. Ingen redusert boring."
+    },
+    {
+      "name": "Generelt skyvespjeld – sluseanslag",
+      "category": "Skyvespjeldsventil",
+      "minimum_dn": 50,
+      "multiplier_small": 8,
+      "multiplier_large": 8,
+      "basis": "Anslag K=8 fT fra Crane sluseventil. Ikke en dokumentert skyvespjeldskorrelasjon; bare full åpning, fri passasje og klar væske."
+    },
+    {
+      "name": "Generelt dreiespjeld – sentrisk",
+      "category": "Dreiespjeldsventil",
+      "minimum_dn": 50,
+      "multiplier_small": 45,
+      "multiplier_large": 35,
+      "basis": "Crane sentrisk dreiespjeld, helt åpent: K=45 fT for DN50–200, 35 fT for DN250–300. Gjelder ikke eksentriske spjeld."
+    }
+  ]
+}

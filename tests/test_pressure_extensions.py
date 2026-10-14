@@ -13,6 +13,9 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"scripts"))
 from build_pressure_workbook import FIRST,LAST,make_workbook,recalculate
 from test_pressure_workbook import colebrook_bisection
+from generic_valves import model_data
+
+BALL, KNIFE, BUTTERFLY = [m["name"] for m in model_data()["models"]]
 
 STRENGTH={"E7":100,"E8":10,"E13":240,"E14":"Numeriske testverdier, ikke materialsertifikat","E17":"Ja","E15":2}
 RED={"B7":1,"D7":50,"E7":100}
@@ -41,8 +44,26 @@ CASES={
     "kv_manual_override":{"Ventiler":{"B7":2,"C7":5,"H7":50}},
     "kv_unverified":{"Ventiler":{"B7":1,"H7":50,"G7":"DN80","E7":"Testkilde","M7":"Nei"}},
     "signed_chart":{"Trykkberegning":{"E30":0,"E31":100}},
+    "generic_ball":{"Ventiler":{"B7":2}},
+    "generic_skyvespjeld":{"Ventiler":{"B8":3}},
+    "generic_butterfly":{"Ventiler":{"B9":1}},
+    "generic_double_flow":{"Trykkberegning":{"E25":72},"Ventiler":{"B7":2}},
+    "generic_dn15":{"Trykkberegning":{"E7":"DN15","E10":1.6},"Ventiler":{"B7":1}},
+    "generic_dn300":{"Trykkberegning":{"E7":"DN300"},"Ventiler":{"B9":1}},
+    "generic_metric":{"Trykkberegning":{"E6":"Metrisk OD","E7":"OD90"},"Ventiler":{"B7":1,"G7":"DN80"}},
+    "generic_local_diameter":{"Reduksjoner":RED,"Ventiler":{"A7":BUTTERFLY,"B7":2,"G7":"DN50","P7":50}},
+    "generic_zero_flow":{"Trykkberegning":{"E25":0},"Ventiler":{"B7":1}},
+    "own_k_laminar":{"Trykkberegning":{"E24":100,"E25":1},"Bend":{"C7":0,"C8":0},"Ventiler":{"B7":1,"N7":0.25,"E7":"Test-K ved denne viskositeten","I7":50}},
+    "own_k_zero":{"Ventiler":{"B7":1,"N7":0,"E7":"Test fri passasje"}},
+    "own_k_missing_source":{"Ventiler":{"B7":1,"N7":0.2}},
+    "generic_partial_open":{"Ventiler":{"B7":1,"I7":50}},
+    "generic_wrong_dn":{"Ventiler":{"B7":1,"G7":"DN100"}},
+    "generic_small_butterfly":{"Trykkberegning":{"E7":"DN25"},"Ventiler":{"B9":1}},
+    "generic_laminar":{"Trykkberegning":{"E24":100,"E25":1},"Bend":{"C7":0,"C8":0},"Ventiler":{"B7":1}},
+    "generic_unknown_local":{"Ventiler":{"B7":1,"P7":50,"G7":"DN50"}},
+    "own_k_negative":{"Ventiler":{"B7":1,"N7":-0.2,"E7":"Test invalid input"}},
 }
-BAD_HYDRAULIC={"reducer_bad_chain","reducer_bad_length","reducer_laminar_missing_k","sections_unknown_diameter","kv_unverified"}
+BAD_HYDRAULIC={"reducer_bad_chain","reducer_bad_length","reducer_laminar_missing_k","sections_unknown_diameter","kv_unverified","own_k_missing_source","generic_partial_open","generic_wrong_dn","generic_small_butterfly","generic_laminar","generic_unknown_local","own_k_negative"}
 
 
 class ExtensionTests(unittest.TestCase):
@@ -163,6 +184,26 @@ class ExtensionTests(unittest.TestCase):
                     self.close_enough(b["I7"].value,2*k*rho*v**2/2000)
                 if name=="kv_verified":self.close_enough(c["B31"].value,2*100000*(rho/1000)*(36/50)**2)
                 if name=="kv_manual_override":self.close_enough(c["B31"].value,10000)
+                if name.startswith("generic_") or name.startswith("own_k_"):
+                    v=w["Ventiler"]; expected_sum=0
+                    for row in range(FIRST,LAST+1):
+                        count=v[f"B{row}"].value
+                        if not count:continue
+                        local=v[f"Q{row}"].value/1000
+                        velocity=flow/(math.pi*local**2/4)
+                        if name.startswith("own_k_"): k=v[f"N{row}"].value
+                        else:
+                            factor={BALL:3,KNIFE:8,BUTTERFLY:35 if v[f"G{row}"].value=="DN300" else 45}[v[f"A{row}"].value]
+                            # Independent root solver, not the model's Excel iterations.
+                            k=factor*colebrook_bisection(7.5e6*local,3.4126825352925e-5*local**-1.0112)
+                        loss=k*rho*velocity**2/2000
+                        self.close_enough(v[f"O{row}"].value,k)
+                        self.close_enough(v[f"J{row}"].value,loss)
+                        expected_sum+=count*loss*1000
+                        if k>0:
+                            kv=v[f"R{row}"].value
+                            self.close_enough(100*(rho/1000)*(m["E25"].value/kv)**2,loss)
+                    self.close_enough(c["B31"].value,expected_sum)
                 self.close_enough(c["B37"].value,c["B35"].value+c["B36"].value+kinetic)
                 self.close_enough(m["H7"].value,c["B37"].value/100000)
                 print("PASS hydraulics:",name,flush=True)

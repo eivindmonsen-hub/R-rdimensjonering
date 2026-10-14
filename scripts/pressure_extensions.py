@@ -191,18 +191,23 @@ def pipe_sections(wb):
 
 
 def valve_catalog(wb):
+    if __package__:
+        from .generic_valves import model_data
+    else:
+        from generic_valves import model_data
+    general = model_data()
     path=ROOT/"data"/"fagerberg_valves.csv"
     products=[]
     if path.exists():
         with path.open(encoding="utf-8",newline="") as file:
             products=list(csv.DictReader(file))
-    ws=base_sheet(wb,"Ventilkatalog","FAGERBERG NORGE – VENTILKATALOG","Produktvalg og kilder. Kv og trykkfall må dokumenteres for aktuell DN, åpning og væske.",[50,30,30,85,30])
-    state=f"{len(products)} katalogprodukter importert" if products else "KATALOG IKKE INNHENTET – nettsiden er blokkert av miljøets nettverksregler. Ingen Fagerberg-modeller er oppdiktet."
+    ws=base_sheet(wb,"Ventilkatalog","VENTILKATALOG – GENERELLE MODELLER OG EGNE DATA","Generelle K-estimater finnes i Ventildata. Egen Δp, Kv eller K kan overstyre.",[58,30,38,85,30])
+    state=f'{len(general["models"])} generelle ventilmodeller tilgjengelige. Modellgrunnlag: Crane via fluids; ikke verifisert snitt fra flere leverandører. Fagerberg-produktdata: {len(products)} importerte produkter.'
     merge(ws,"A4:E5",state,INK,AMBER,11,True)
     headers=["Valg i ventilfanen","Kategori","Produsent / modell","Kilde-URL","Hentedato"]
     for col,label in enumerate(headers,1):styled_cell(ws,f"{chr(64+col)}6",label)
     generic=[("Egen ventil (dokumentert)","Egen","","",""),("Kuleventil","Generisk","","",""),("Reguleringsventil","Generisk","","",""),("Tilbakeslagsventil","Generisk","","",""),("Spjeldventil","Generisk","","",""),("Sluseventil","Generisk","","","")]
-    records=generic+[(p["name"],p.get("category",""),p.get("manufacturer_model",""),p["url"],p.get("retrieved","")) for p in products]
+    records=generic+[(m["name"],m["category"],"Modellestimat, ikke leverandørprodukt",general["sources"][0],general["retrieved"]) for m in general["models"]]+[(p["name"],p.get("category",""),p.get("manufacturer_model",""),p["url"],p.get("retrieved","")) for p in products]
     for r,record in enumerate(records,7):
         for col,value in enumerate(record,1):styled_cell(ws,f"{chr(64+col)}{r}",value)
         ws.row_dimensions[r].height=34
@@ -318,7 +323,7 @@ def integrate(wb):
     main["H16"]="Regime (hoved-ID)"
     main["H17"]="Darcy f (hoved-ID)"
     # Links to additions, keeping the existing main inputs and cached-output addresses.
-    for r,name,label in [(42,"Reduksjoner","Reduksjoner og endehastighet →"),(43,"Rørstrekk","Rette rør med flere diametre →"),(44,"Rørstyrke","Styrkeberegning og sikkerhetsfaktor →"),(45,"Ventilkatalog","Fagerberg: katalog og datakilder →")]:
+    for r,name,label in [(42,"Reduksjoner","Reduksjoner og endehastighet →"),(43,"Rørstrekk","Rette rør med flere diametre →"),(44,"Rørstyrke","Styrkeberegning og sikkerhetsfaktor →"),(45,"Ventildata","Generelle ventiler: K, Kv og datakilder →")]:
         c=merge(main,f"A{r}:F{r}",label,"086AA5",BLUE,11,True)
         c.hyperlink=f"#'{name}'!A1"
     main.unmerge_cells("A40:N41")
@@ -334,4 +339,9 @@ def add_extensions(wb):
     fitting_diameters(wb)
     valve_catalog(wb)
     valve_options(wb)
+    if __package__:
+        from .generic_valves import add_generic_valves
+    else:
+        from generic_valves import add_generic_valves
+    add_generic_valves(wb)
     integrate(wb)
