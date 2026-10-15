@@ -27,10 +27,12 @@ from openpyxl.worksheet.page import PageMargins
 
 ROOT = Path(__file__).resolve().parents[1]
 FIRST, LAST = 7, 31
-NAVY, TEAL, BLUE = "142D4E", "087F8C", "E5F2FF"
-PALE, WHITE, INK, GREY = "F1F5F9", "FFFFFF", "20354C", "617589"
-AMBER, RED, GREEN = "FFF0CE", "FFE5E5", "E1F3EB"
-EDGE = Side(style="thin", color="D6E1EA")
+# Alfsen og Gunderson profile extracted from the user-provided HTML.
+# BLUE retains its internal name for the shared input-field styling.
+NAVY, TEAL, BLUE = "022B2A", "005149", "C0FFDE"
+PALE, WHITE, INK, GREY = "F5FAF6", "FFFFFF", "1A1C1B", "005149"
+AMBER, RED, GREEN = "FFF0EB", "FF4B1A", "C0FFDE"
+EDGE = Side(style="thin", color="40C1AC")
 
 SERIES = ["EN 10220 / ISO 4200", "ISO 1127", "Metrisk OD"]
 DN_OD = [(15, 21.3), (20, 26.9), (25, 33.7), (32, 42.4), (40, 48.3),
@@ -108,7 +110,7 @@ def styled_cell(ws, address, value=None, kind="calc", number_format=None, note=N
     cell = ws[address]
     cell.value = value
     cell.fill = PatternFill("solid", fgColor=BLUE if kind == "input" else PALE)
-    cell.font = Font(name="Calibri", size=11, color="086AA5" if kind == "input" else INK)
+    cell.font = Font(name="Calibri", size=11, color=TEAL if kind == "input" else INK)
     cell.alignment = Alignment(vertical="center", wrap_text=True)
     cell.border = Border(bottom=EDGE)
     cell.protection = Protection(locked=(kind != "input"))
@@ -126,7 +128,7 @@ def dv_list(ws, formula, cells, title="Velg verdi"):
     dv.showErrorMessage = True
     dv.errorTitle, dv.error = "Ugyldig valg", "Velg fra listen, eller bruk et felt for egne verdier."
     dv.showInputMessage, dv.promptTitle = True, title
-    dv.prompt = "Bruk nedtrekkslisten. Blå felt kan redigeres."
+    dv.prompt = "Bruk nedtrekkslisten. Lysegrønne felt kan redigeres."
     dv.showDropDown = False
     ws.add_data_validation(dv)
     dv.add(cells)
@@ -215,7 +217,7 @@ def references(wb):
 
 
 def inputs(wb):
-    ws = base_sheet(wb, "Trykkberegning", "TRYKKBEREGNING AV RØR", "Væsker · én rørstrekning · eksempeldata ved åpning · blå felt er inndata", [18, 11, 11, 13, 23, 13, 3, 15, 12, 12, 12, 13, 11, 12])
+    ws = base_sheet(wb, "Trykkberegning", "TRYKKBEREGNING AV RØR", "Væsker · én rørstrekning · eksempeldata ved åpning · lysegrønne felt er inndata", [18, 11, 11, 13, 23, 13, 3, 15, 12, 12, 12, 13, 11, 12])
     ws.freeze_panes = "E6"
     for row, title in [(5, "1  RØR OG MATERIALE"), (19, "2  MEDIUM OG VOLUMSTRØM"), (28, "3  RØRLENGDE OG HØYDEFORSKJELL")]:
         merge(ws, f"A{row}:F{row}", title, WHITE, TEAL, 12, True)
@@ -320,7 +322,7 @@ def inputs(wb):
     ws.add_chart(chart, "H26")
     merge(ws, "A35:F35", "4  LEGG TIL KOMPONENTER I EGNE FANER", WHITE, TEAL, 11, True)
     for row, sheet, label in [(36,"Bend","Bend, Y- og T-stykker →"), (37,"Ventiler","Ventiler: antall og Δp per ventil →"), (38,"Komponenter","Andre komponenter: antall og Δp →")]:
-        c = merge(ws, f"A{row}:F{row}", label, "086AA5", BLUE, 11, True)
+        c = merge(ws, f"A{row}:F{row}", label, TEAL, BLUE, 11, True)
         c.hyperlink = f"#'{sheet}'!A1"
     merge(ws, "A40:N41", "MODELL: Newtonsk, inkompressibel væske; konstant diameter og volumstrøm. Darcy–Weisbach + Colebrook (laminært: 64/Re). Hydraulikk, ikke mekanisk trykklasse. Se Veiledning for forutsetninger og kilder.", GREY, PALE, 10)
     ws.print_area = "A1:N41"
@@ -492,7 +494,7 @@ def calculation(wb):
 def guide(wb):
     ws=base_sheet(wb,"Veiledning","SLIK BRUKER DU ARKET","Makrofri Excel-arbeidsbok · enheter og forutsetninger er en del av beregningen.",[8,42,115])
     topics=[
-        ("1. Rør og materiale","Velg rørserie, DN/OD, materiale og EN-produktstandard. Oppgi faktisk veggtykkelse. Ved kjent lysåpning kan du overstyre ID. Metrisk OD er ikke en automatisk material- eller veggserie. En svart/grå verdi er beregnet; blå felt er inndata."),
+        ("1. Rør og materiale","Velg rørserie, DN/OD, materiale og EN-produktstandard. Oppgi faktisk veggtykkelse. Ved kjent lysåpning kan du overstyre ID. Metrisk OD er ikke en automatisk material- eller veggserie. En mørk verdi er beregnet; lysegrønne felt er inndata."),
         ("2. Væske og drift","Velg vann ved referansetemperatur eller annet medium. Overstyr tetthet og dynamisk viskositet ved faktisk drift. Viskositeten skal være i mPa·s (cP), ikke cSt. Volumstrøm angis i m³/h. Vann er standard; arket gjelder ikke gass eller damp."),
         ("3. Lengde og høyde","Rette rørmeter L er samlet rett rørlengde, både horisontal og vertikal. Høydefeltene legger ikke til rørfriksjonslengde. Oppgi positive høydemeter opp og ned. Netto høyde er opp minus ned. Fall reduserer nødvendig trykkdifferanse, men ikke dissipative tap. Arket løser ikke strømning fra tilgjengelig trykk; volumstrømmen er en inndata."),
         ("4. Bend / Y / T","Legg hver bendtype/vinkel på egen rad. R/Di er faktisk senterlinjeradius delt på innvendig diameter, ikke R/DN. Rundede bend bruker Rennels ved Re>=4000; eget K overstyrer. Y/T og annen geometri krever eget dokumentert K, fordi fordeling og strømningsvei påvirker motstanden. Maksimalt 25 rader."),
@@ -517,7 +519,7 @@ def guide(wb):
     row=len(topics)+8
     cell=styled_cell(ws,f"C{row}","Dokumentert referanseimplementasjon: fluids / fittings.py")
     cell.hyperlink="https://github.com/CalebBell/fluids/blob/master/fluids/fittings.py"
-    cell.font=Font(color="086AA5",underline="single")
+    cell.font=Font(color=TEAL,underline="single")
     ws.print_area=f"A1:C{row}"
     ws.page_setup.fitToHeight=0
     ws.print_title_rows="1:3"
@@ -548,6 +550,11 @@ def make_workbook():
     wb.active=0
     for sheet in wb:
         sheet.sheet_view.showGridLines=False
+    if __package__:
+        from .workbook_branding import apply_branding
+    else:
+        from workbook_branding import apply_branding
+    apply_branding(wb)
     return wb
 
 
@@ -572,6 +579,13 @@ def restore_validations(source, target):
         return result
     changes={}
     with ZipFile(source) as original,ZipFile(target) as calculated:
+        if __package__:
+            from .workbook_branding import brand_theme
+        else:
+            from workbook_branding import brand_theme
+        # Calc resets theme hyperlink/accent colors on export. Recolor only
+        # the theme; cached values, fonts and positions stay intact.
+        changes["xl/theme/theme1.xml"]=brand_theme(calculated.read("xl/theme/theme1.xml"))
         originals,outputs=sheet_paths(original),sheet_paths(calculated)
         for name,path in originals.items():
             tree=ET.fromstring(original.read(path))

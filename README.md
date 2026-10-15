@@ -4,9 +4,13 @@ Excel-ark for hydraulisk trykkberegning av industrirør med væsker.
 
 Åpne **[workbooks/Trykkberegning_ror.xlsx](workbooks/Trykkberegning_ror.xlsx)** i Excel
 eller LibreOffice Calc. Arbeidsboken er makrofri og leveres med beregnede
-eksempelverdier. Endre de blå feltene; les kontrollfeltet og fanen **Veiledning**.
+eksempelverdier. Endre de lysegrønne feltene; les kontrollfeltet og fanen **Veiledning**.
 Excel anbefales for valglister: LibreOffice kan fjerne dimensjonens avhengige
 valgliste ved lagring. Generatoren gjenoppretter denne listen etter beregning.
+
+Farger og logo følger Alfsen og Gunderson-profilen fra den brukeropplastede
+HTML-filen. Logoen er plassert i eksisterende tittelfelt; oppsett og beregninger
+er beholdt. Profilgrunnlaget ligger i [assets/branding](assets/branding).
 
 Arket inneholder:
 

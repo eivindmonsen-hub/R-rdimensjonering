@@ -324,7 +324,7 @@ def integrate(wb):
     main["H17"]="Darcy f (hoved-ID)"
     # Links to additions, keeping the existing main inputs and cached-output addresses.
     for r,name,label in [(42,"Reduksjoner","Reduksjoner og endehastighet →"),(43,"Rørstrekk","Rette rør med flere diametre →"),(44,"Rørstyrke","Styrkeberegning og sikkerhetsfaktor →"),(45,"Ventildata","Generelle ventiler: K, Kv og datakilder →")]:
-        c=merge(main,f"A{r}:F{r}",label,"086AA5",BLUE,11,True)
+        c=merge(main,f"A{r}:F{r}",label,TEAL,BLUE,11,True)
         c.hyperlink=f"#'{name}'!A1"
     main.unmerge_cells("A40:N41")
     merge(main,"A40:F41","MODELL: seriell strømningsvei for Newtonsk væske. Ulike diametre: Reduksjoner/Rørstrekk. Rørstyrke: separat kontroll av indre overtrykk. Se Veiledning.",GREY,PALE,10)
