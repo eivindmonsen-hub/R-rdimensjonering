@@ -4,6 +4,9 @@ from pathlib import Path
 
 from openpyxl.chart.label import DataLabelList
 from openpyxl.chart.layout import Layout, ManualLayout
+from openpyxl.chart.data_source import NumFmt
+from openpyxl.chart.text import RichText
+from openpyxl.drawing.text import CharacterProperties, Paragraph, ParagraphProperties, RichTextProperties
 from openpyxl.styles import Alignment, PatternFill
 
 if __package__:
@@ -314,6 +317,10 @@ def integrate(wb):
     chart.series[0].cat.numRef.f="'Beregning'!$D$30:$D$37"
     chart.x_axis.tickLblPos="none"
     chart.x_axis.delete=True
+    # In a horizontal bar chart, y_axis is the horizontal numeric axis.
+    # Keep the unit in its title and avoid inheriting long bar-label formats.
+    chart.y_axis.numFmt=NumFmt(formatCode="0.###",sourceLinked=False)
+    chart.y_axis.txPr=RichText(bodyPr=RichTextProperties(rot=-45*60000),p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=900,solidFill=INK)))])
     chart.dLbls=DataLabelList(dLblPos="outEnd",showVal=True,showCatName=True,showSerName=False,showLegendKey=False,showPercent=False,separator="\n",numFmt='0.000" bar";-0.000" bar";""')
     chart.layout=Layout(manualLayout=ManualLayout(x=.23,y=.18,w=.54,h=.68,xMode="factor",yMode="factor",wMode="factor",hMode="factor",layoutTarget="inner"))
     chart.height=12.0

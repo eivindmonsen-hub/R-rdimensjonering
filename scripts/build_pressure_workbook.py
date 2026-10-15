@@ -646,6 +646,16 @@ def restore_validations(source, target):
                     src=source_axis.find(f"c:{name}",ns)
                     dst=target_axis.find(f"c:{name}",ns)
                     if src is not None and dst is not None:dst.attrib.update(src.attrib)
+            # Keep compact, angled numeric ticks independent of cell formats.
+            # Replacing existing children retains the OOXML element ordering.
+            for source_axis,target_axis in zip(source_chart.findall(".//c:valAx",ns),target_chart.findall(".//c:valAx",ns)):
+                for name in ("numFmt","txPr"):
+                    src=source_axis.find(f"c:{name}",ns)
+                    dst=target_axis.find(f"c:{name}",ns)
+                    if src is not None and dst is not None:
+                        position=list(target_axis).index(dst)
+                        target_axis.remove(dst)
+                        target_axis.insert(position,deepcopy(src))
             layout=source_chart.find(".//c:plotArea/c:layout",ns)
             plot=target_chart.find(".//c:plotArea",ns)
             if layout is not None:
